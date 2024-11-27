@@ -1,34 +1,54 @@
-import { Tabs } from 'expo-router';
-import React from 'react';
+import { Tabs } from "expo-router";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { TabHeader } from "@/components/TabHeader";
 
-import { TabBarIcon } from '@/components/navigation/TabBarIcon';
-import { Colors } from '@/constants/Colors';
-import { useColorScheme } from '@/hooks/useColorScheme';
-
-export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
+export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        headerShown: false,
-      }}>
+        tabBarStyle: {
+          backgroundColor: "hsl(223, 16%, 9%)",
+          borderTopColor: "hsl(223, 16%, 9%)",
+          borderTopWidth: 0,
+        },
+        tabBarInactiveBackgroundColor: "hsl(223, 16%, 9%)",
+        tabBarActiveBackgroundColor: "hsl(223, 16%, 12%)",
+        tabBarActiveTintColor: "#b9742f",
+      }}
+    >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
+          title: "Home",
+          header: () => (
+            <TabHeader title="Home">
+              <Ionicons color="white" size={28} name="home" />
+            </TabHeader>
+          ),
           tabBarIcon: ({ color, focused }) => (
-            <TabBarIcon name={focused ? 'home' : 'home-outline'} color={color} />
+            <Ionicons
+              name={focused ? "home-sharp" : "home-outline"}
+              color={color}
+              size={24}
+            />
           ),
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="mesocycles"
         options={{
-          title: 'Explore',
+          title: "Cycles",
+          header: () => (
+            <TabHeader title="Cycles">
+              <Ionicons color="white" size={28} name="list-circle" />
+            </TabHeader>
+          ),
           tabBarIcon: ({ color, focused }) => (
-            <TabBarIcon name={focused ? 'code-slash' : 'code-slash-outline'} color={color} />
+            <Ionicons
+              name={focused ? "albums" : "albums-outline"}
+              color={color}
+              size={24}
+            />
           ),
         }}
       />

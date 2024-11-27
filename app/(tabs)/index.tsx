@@ -1,70 +1,174 @@
-import { Image, StyleSheet, Platform } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { StyleSheet, Text, View, Button, TextInput, FlatList, TouchableOpacity, Alert } from 'react-native';
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import { createTables, getDBConnection, resetDatabase, } from '@/db/db';
+import { SofiaSans_400Regular, SofiaSans_600SemiBold, useFonts } from "@expo-google-fonts/sofia-sans"
 
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+interface Item {
+  id: number;
+  name: string;
+  age: number;
+}
 
-export default function HomeScreen() {
+interface ModalInterface {
+  visible: boolean;
+  onClose: () => void;
+}
+
+const CustomModal: React.FC<ModalInterface> = ({ visible, onClose }) => {
+  const [fontsLoaded, error] = useFonts({ SofiaSans_400Regular, SofiaSans_600SemiBold })
+  const [nameValue, setNameValue] = useState<string>('');
+  const [ageValue, setAgeValue] = useState<string>('');
+
+  const opacity = useSharedValue(0);
+  const translateY = useSharedValue(100);
+
+  // Define animated styles using useAnimatedStyle
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      opacity: opacity.value,
+      transform: [{ translateY: translateY.value }],
+    };
+  });
+
+  useEffect(() => {
+    // Animate when the modal becomes visible
+    if (visible) {
+
+      opacity.value = withTiming(1, { duration: 300, easing: Easing.inOut(Easing.ease) });
+      translateY.value = withTiming(0, { duration: 300, easing: Easing.inOut(Easing.ease) });
+    } else {
+      opacity.value = withTiming(0, { duration: 300, easing: Easing.inOut(Easing.ease) });
+      translateY.value = withTiming(100, { duration: 300, easing: Easing.inOut(Easing.ease) });
+    }
+  }, [visible]);
+
+  // Function to handle adding an entry
+  const handleAddEntry = async (name: string, age: string) => {
+    const db = await getDBConnection();
+    // Convert age to a number before inserting
+    const ageValue = parseInt(age);
+
+    // Insert the data into the database
+    if (name && !isNaN(ageValue)) {
+      // Reset input fields after adding the entry
+      setNameValue('');
+      setAgeValue('');
+      onClose()
+    } else {
+      Alert.alert("Input Error", "Please enter valid name and age."); // Simple validation
+    }
+  };
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({ ios: 'cmd + d', android: 'cmd + m' })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          Tap the Explore tab to learn more about what's included in this starter app.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          When you're ready, run{' '}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+    <Animated.View style={[stylesModal.modal, animatedStyle]}>
+      <Text style={stylesModal.modalText}>Enter your item!</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Enter Name"
+        value={nameValue}
+        onChangeText={setNameValue}
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Enter Age"
+        value={ageValue}
+        onChangeText={setAgeValue}
+      />
+      <TouchableOpacity className='bg-green-800 rounded-sm w-full' onPress={() => handleAddEntry(nameValue, ageValue)}  >
+        <Text className='text-white py-4 px-6 uppercase font-bold text-center'>Add to DB</Text>
+      </TouchableOpacity>
+      <TouchableOpacity className='bg-slate-800 rounded-sm w-full' onPress={onClose}  >
+        <Text className='text-white py-4 px-6  font-bold text-center'>Close</Text>
+      </TouchableOpacity>
+
+    </Animated.View>
+  );
+};
+
+const stylesModal = StyleSheet.create({
+  modal: {
+    position: 'absolute',
+    width: "100%",
+    top: '20%',
+    left: '0%',
+    zIndex: 10,
+    transform: [{ translateX: -50 }, { translateY: -50 }],
+    padding: 20,
+    backgroundColor: 'white',
+    borderRadius: 10,
+    elevation: 5,
+    display: "flex",
+    gap: 10,
+    fontFamily: "SofiaSans_400Regular"
+  },
+  modalText: {
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  input: {
+    width: '80%',
+    height: 40,
+    borderColor: 'gray',
+    borderWidth: 1,
+    marginBottom: 10,
+    paddingHorizontal: 10,
+  },
+});
+
+export default function Index(): JSX.Element {
+  const [open, setOpen] = useState(false);
+  const [nameValue, setNameValue] = useState<string>('');
+  const [ageValue, setAgeValue] = useState<string>('');
+
+
+  useEffect(() => {
+    createTables()
+  }, [])
+
+
+  return (
+    <View className='bg-slate-950 flex flex-col gap-4 flex-1 justify-center items-center p-8'>
+      <Text className='font-extrabold text-4xl text-white'>SQLite Items</Text>
+
+      <TouchableOpacity className='bg-orange-400  rounded-sm w-full' onPress={() => { setOpen(true) }}  >
+        <Text className='text-black py-4 px-6 uppercase font-bold text-center'>Add item</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity className='bg-slate-900 border-white border rounded-sm w-full' disabled={!nameValue || !ageValue} >
+        <Text className='text-white py-4 px-6 font-bold text-center'>Delete Item</Text>
+      </TouchableOpacity >
+      <TouchableOpacity className='bg-slate-800 rounded-xs w-full' onPress={() => resetDatabase()} >
+        <Text className='text-white py-4 px-6  font-bold text-center'>Reset Database</Text>
+      </TouchableOpacity>
+    </View >
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
+
+  itemContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'space-between',
+    padding: 10,
+    width: '90%',
+    borderBottomWidth: 1,
+    borderColor: '#ccc',
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  header: {
+    fontSize: 24,
+    marginBottom: 20,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  input: {
+    width: '80%',
+    height: 40,
+    borderColor: 'gray',
+    borderWidth: 1,
+    marginBottom: 10,
+    paddingHorizontal: 10,
+  },
+  deleteButton: {
+    color: 'red',
   },
 });
