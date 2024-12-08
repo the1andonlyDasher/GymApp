@@ -1,3 +1,5 @@
+import { Mesocycle } from "@/app/stores/store";
+import { getDBConnection } from "@/db/db";
 import React, { useState, useRef, useEffect } from "react";
 import {
     View,
@@ -11,7 +13,35 @@ import {
     Easing,
 } from "react-native";
 
-const AnimatedModal = ({ open, onClose }: { open: boolean, onClose: () => void }) => {
+export const updateMesocycleName = async (newName: string, id: number) => {
+    const db = await getDBConnection();
+
+    const statement = await db.prepareAsync(
+        `UPDATE Mesocycles SET name = $newName WHERE id = $id;`
+    );
+
+    try {
+        const result = await statement.executeAsync<Mesocycle[]>({
+            $newName: newName,
+            $id: id
+        });
+        const mesocycles = await result.getAllAsync()
+        if (mesocycles.length > 0) {
+            console.log(`Mesocycle with ID ${id} updated successfully.`);
+        } else {
+            console.warn(`No Mesocycle found with ID ${id}.`);
+        }
+        return mesocycles; // Returns the number of rows updated
+    } catch (error) {
+        console.error("Error updating Mesocycle name:", error);
+        throw error; // Propagate the error to handle it further up the chain
+    } finally {
+        await statement.finalizeAsync();
+    }
+};
+
+
+const AnimatedModal = ({ open, onClose, mesocycle }: { open: boolean, onClose: () => void, mesocycle: Mesocycle }) => {
     const [selectedMesocycle, setSelectedMesocycle] = useState<any>(null);
     const [newName, setNewName] = useState("");
 
@@ -38,7 +68,7 @@ const AnimatedModal = ({ open, onClose }: { open: boolean, onClose: () => void }
 
     const handleSave = () => {
         if (newName.trim()) {
-
+            updateMesocycleName(newName, mesocycle.id)
             onClose();
         } else {
             alert("Name cannot be empty.");
