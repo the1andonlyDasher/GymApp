@@ -1,4 +1,4 @@
-import { Mesocycle } from "@/app/stores/store";
+import { Exercise, Mesocycle, Microcycle, Set, Workout } from "@/app/stores/store";
 import { getDBConnection } from "@/db/db";
 import React, { useState, useRef, useEffect } from "react";
 import {
@@ -13,36 +13,19 @@ import {
     Easing,
 } from "react-native";
 
-export const updateMesocycleName = async (newName: string, id: number) => {
-    const db = await getDBConnection();
+type TItem = Mesocycle | Microcycle | Workout | Exercise
 
-    const statement = await db.prepareAsync(
-        `UPDATE Mesocycles SET name = $newName WHERE id = $id;`
-    );
-
-    try {
-        const result = await statement.executeAsync<Mesocycle[]>({
-            $newName: newName,
-            $id: id
-        });
-        const mesocycles = await result.getAllAsync()
-        if (mesocycles.length > 0) {
-            console.log(`Mesocycle with ID ${id} updated successfully.`);
-        } else {
-            console.warn(`No Mesocycle found with ID ${id}.`);
-        }
-        return mesocycles; // Returns the number of rows updated
-    } catch (error) {
-        console.error("Error updating Mesocycle name:", error);
-        throw error; // Propagate the error to handle it further up the chain
-    } finally {
-        await statement.finalizeAsync();
-    }
-};
-
-
-const AnimatedModal = ({ open, onClose, mesocycle }: { open: boolean, onClose: () => void, mesocycle: Mesocycle }) => {
-    const [selectedMesocycle, setSelectedMesocycle] = useState<any>(null);
+const AnimatedModal = ({
+    open,
+    onClose,
+    item,
+    updateFn
+}: {
+    open: boolean;
+    onClose: () => void;
+    item: TItem;
+    updateFn: (newName: string, id: number) => Promise<TItem[][]>
+}) => {
     const [newName, setNewName] = useState("");
 
     const animationValue = useRef(new Animated.Value(0)).current;
@@ -68,13 +51,12 @@ const AnimatedModal = ({ open, onClose, mesocycle }: { open: boolean, onClose: (
 
     const handleSave = () => {
         if (newName.trim()) {
-            updateMesocycleName(newName, mesocycle.id)
+            updateFn(newName, item.id);
             onClose();
         } else {
             alert("Name cannot be empty.");
         }
     };
-
 
     // Animated styles
     const animatedStyle = {
@@ -100,9 +82,9 @@ const AnimatedModal = ({ open, onClose, mesocycle }: { open: boolean, onClose: (
             >
                 <View style={styles.modalOverlay}>
                     <Animated.View style={[styles.modalContainer, animatedStyle]}>
-                        <Text style={styles.modalTitle}>Edit Mesocycle</Text>
+                        <Text style={styles.modalTitle}>Edit {item.name}</Text>
                         <Text style={styles.oldName}>
-                            Old Name: {selectedMesocycle?.name}
+                            Old Name: {item?.name}
                         </Text>
                         <TextInput
                             style={styles.input}

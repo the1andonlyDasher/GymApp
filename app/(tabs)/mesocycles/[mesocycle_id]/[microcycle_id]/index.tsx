@@ -2,8 +2,38 @@
 import React, { useEffect, useState } from 'react';
 import { FlatList, Text, Button, View, TouchableOpacity, TextInput } from 'react-native';
 import { Link, useRouter, useLocalSearchParams, usePathname, Href } from 'expo-router';
-import useItemStore from '@/app/stores/store';
+import useItemStore, { Workout } from '@/app/stores/store';
 import { SofiaSans_700Bold, useFonts } from '@expo-google-fonts/sofia-sans';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import AnimatedModal from '@/components/Modal';
+import { getDBConnection } from '@/db/db';
+
+export const updateWorkoutName = async (newName: string, id: number) => {
+    const db = await getDBConnection();
+
+    const statement = await db.prepareAsync(
+        `UPDATE Workouts SET name = $newName WHERE id = $id;`
+    );
+
+    try {
+        const result = await statement.executeAsync<Workout[]>({
+            $newName: newName,
+            $id: id
+        });
+        const workouts = await result.getAllAsync()
+        if (workouts.length > 0) {
+            console.log(`Workout with ID ${id} updated successfully.`);
+        } else {
+            console.warn(`No Workout found with ID ${id}.`);
+        }
+        return workouts; // Returns the number of rows updated
+    } catch (error) {
+        console.error("Error updating Workout name:", error);
+        throw error; // Propagate the error to handle it further up the chain
+    } finally {
+        await statement.finalizeAsync();
+    }
+};
 
 export default function MicrocyclesScreen() {
     const [loaded, error] = useFonts({ SofiaSans_700Bold })
@@ -12,30 +42,52 @@ export default function MicrocyclesScreen() {
     const { loadWorkouts, addWorkout, deleteWorkout, workouts } = useItemStore();
     const router = useRouter();
     const [workoutName, setWorkoutName] = useState<string>("")
+    const [modalOpen, setModalOpen] = useState<boolean>(false);
+
+    const closeModal = () => {
+        setModalOpen(false);
+    };
 
 
     useEffect(() => {
         loadWorkouts(parseInt(microcycle_id as string));
-    }, [microcycle_id]);
+    }, [microcycle_id, workouts]);
 
     return (
-        <View className={`flex bg-slate-950 w-full h-full justify-start flex-col`}>
+        <View className="flex bg-[hsl(210,5%,7%)] w-full h-full justify-start flex-col">
             <Text style={{ fontFamily: "SofiaSans_700Bold" }} className='text-white font-bold text-3xl text-center p-4'>Workouts</Text>
             <FlatList
-                className='bg-slate-900 p-4 m-2 border-[#16213b] rounded-xs flex flex-col gap-6'
+                className="bg-[hsl(210,5%,9%)] p-4 m-2 border-[#16213b] rounded-xs flex fle-col gap-6"
                 contentContainerStyle={{ justifyContent: "space-evenly", gap: 10 }}
                 data={workouts}
                 keyExtractor={(item) => item.id.toString()}
                 renderItem={({ item }) => (
                     <TouchableOpacity
-                        className='bg-[#151f38] border-slate-800 border rounded-sm p-4 flex flex-col gap-4'
+                        className="bg-[hsl(221,20%,16%)] border-[hsl(221,20%,20%)] border rounded-sm p-4 flex flex-row items-center justify-center gap-4"
                         onPress={() => router.push(`mesocycles/${mesocycle_id}/${microcycle_id}/${item.id}` as Href)}
                     >
-                        <Text className='text-white font-semibold text-xl'>{item.name}</Text>
-                        <Text className='text-white font-semibold text-xl'>{item.id}</Text>
-                        < TouchableOpacity className='bg-rose-700 rounded-xs w-full' onPress={() => deleteWorkout(item.id)}>
-                            <Text className='text-white py-2 px-4  font-bold text-center'>Remove</Text>
+                        <View className="flex flex-row flex-1">
+                            <Text className="text-white font-semibold text-xl flex flex-[1_1_60%]">
+                                {item.name}
+                            </Text>
+                            <Text className="text-slate-400 font-semibold text-xl flex flex-1">
+                                {item.id}
+                            </Text>
+                        </View>
+                        <TouchableOpacity
+                            className="bg-sky-700 rounded-md p-3 flex items-center justify-center aspect-square"
+                            onPress={() => setModalOpen(true)}
+                        >
+                            <Ionicons name="pencil" size={20} color="white" />
                         </TouchableOpacity>
+                        <TouchableOpacity
+                            className="bg-rose-700 rounded-md p-3 flex items-center justify-center aspect-square"
+                            onPress={() => deleteWorkout(item.id)}
+                        >
+                            <Ionicons name="trash-bin" size={20} color="white" />
+                        </TouchableOpacity>
+                        <AnimatedModal updateFn={updateWorkoutName} item={item} open={modalOpen} onClose={closeModal} />
+
                     </TouchableOpacity>
                 )}
             />
