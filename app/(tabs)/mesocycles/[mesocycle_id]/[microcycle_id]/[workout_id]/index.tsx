@@ -1,5 +1,5 @@
 // app/mesocycles/[mesocycleId]/index.tsx
-import React, { useEffect, useState } from "react";
+import React, { Dispatch, useEffect, useState } from "react";
 import {
     FlatList,
     Text,
@@ -15,7 +15,7 @@ import {
     usePathname,
     Href,
 } from "expo-router";
-import useItemStore, { Set } from "@/app/stores/store";
+import useItemStore, { ExerciseWithSets, Set, Workout } from "@/app/stores/store";
 import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
 import {
     faChartLine,
@@ -23,6 +23,120 @@ import {
     faRepeat,
 } from "@fortawesome/free-solid-svg-icons";
 import { SofiaSans_100Thin_Italic, SofiaSans_700Bold, useFonts } from "@expo-google-fonts/sofia-sans";
+import Ionicons from "@expo/vector-icons/Ionicons";
+
+const WorkoutItem = ({
+    mesocycle_id,
+    microcycle_id,
+    workout_id,
+    item,
+    setModalOpen,
+    deleteExercise
+}: {
+    mesocycle_id: string | string[],
+    microcycle_id: string | string[],
+    workout_id: string | string[],
+    item: ExerciseWithSets
+    setModalOpen: Dispatch<React.SetStateAction<boolean>>
+    deleteExercise: (id: number) => Promise<void>
+}) => {
+    const router = useRouter()
+    const [showSets, setShowSets] = useState<boolean>(false);
+    const getStyleBasedOnValue = (value: number) => {
+        if (value === 0) {
+            return "#4e9b43"; // green
+        } else if (value >= 8 && value < 10) {
+            return "#d1b339"; // yellow
+        } else if (value >= 10) {
+            return "#871f1f"; // red
+        }
+        return "#4e9b43"; // default color
+    };
+    return (
+        <TouchableOpacity
+            className="bg-[hsl(210,5%,11%)] border-[hsl(210,5%,15%)] border rounded-sm p-4 flex flex-col gap-4"
+            onPress={() =>
+                router.push(
+                    `mesocycles/${mesocycle_id}/${microcycle_id}/${workout_id}/${item.id}` as Href
+                )
+            }
+        >
+            <View className="flex flex-row justify-between gap-4">
+                <View className="flex flex-row flex-1">
+                    <Text className="text-white font-semibold text-xl flex flex-[1_1_60%]">
+                        {item.name}
+                    </Text>
+                    <Text className="text-slate-400 font-semibold text-xl flex flex-1">
+                        {item.id}
+                    </Text>
+                </View>
+                <TouchableOpacity
+                    className={`${showSets ? 'bg-[hsl(210,5%,4%)] rotate-180' : 'bg-emerald-500 rotate-0'} rounded-md p-3 flex items-center justify-center aspect-square`}
+                    onPress={() => setShowSets(!showSets)}
+                >
+                    <Ionicons name="arrow-down" size={20} color="white" />
+                </TouchableOpacity>
+                <TouchableOpacity
+                    className="bg-sky-700 rounded-md p-3 flex items-center justify-center aspect-square"
+                    onPress={() => setModalOpen(true)}
+                >
+                    <Ionicons name="pencil" size={20} color="white" />
+                </TouchableOpacity>
+                <TouchableOpacity
+                    className="bg-rose-700 rounded-md p-3 flex items-center justify-center aspect-square"
+                    onPress={() => deleteExercise(item.id)}
+                >
+                    <Ionicons name="trash-bin" size={20} color="white" />
+                </TouchableOpacity>
+            </View>
+            <View className={`grid ${showSets ? 'grid-rows-[1fr] h-auto' : 'grid-rows-[0fr] h-0'}  overflow-hidden w-full`}>
+                <FlatList
+                    className="flex flex-col justify-between w-full gap-4 overflow-hidden"
+                    contentContainerStyle={{
+                        justifyContent: "space-between",
+                        width: "100%",
+                    }}
+                    data={item.setsDetails}
+                    keyExtractor={(item) => item.id?.toString() ?? "unknown"}
+                    renderItem={({ item }) => (
+                        <View className="flex flex-row gap-6 justify-center flex-1 border-[hsl(210,5%,7%)] border bg-[hsl(210,5%,6%)] px-6 py-4">
+                            <Text className="flex flex-row items-center justify-center text-slate-500">
+                                <FontAwesomeIcon
+                                    size={12}
+                                    style={{ margin: 0 }}
+                                    color="#64748b"
+                                    icon={faRepeat}
+                                />{" "}
+                                {item.reps}
+                            </Text>
+                            <Text className="flex flex-row items-center justify-center text-slate-500">
+                                <FontAwesomeIcon
+                                    size={14}
+                                    style={{ margin: 0 }}
+                                    color="#64748b"
+                                    icon={faDumbbell}
+                                />{" "}
+                                {item.weight}
+                            </Text>
+                            <Text
+                                className={`flex flex-row items-center justify-center`}
+                                style={{ color: `${getStyleBasedOnValue(item.rpe)}` }}
+                            >
+                                <FontAwesomeIcon
+                                    size={12}
+                                    style={{ margin: 0 }}
+                                    color={getStyleBasedOnValue(item.rpe)}
+                                    icon={faChartLine}
+                                />{" "}
+                                {item.rpe}
+                            </Text>
+                        </View>
+                    )}
+                />
+            </View>
+        </TouchableOpacity>
+    )
+}
 
 export default function WorkoutsScreen() {
     const { mesocycle_id, microcycle_id, workout_id } = useLocalSearchParams();
@@ -35,7 +149,10 @@ export default function WorkoutsScreen() {
     } = useItemStore();
     const router = useRouter();
     const [workoutName, setWorkoutName] = useState<string>("");
-    const path = usePathname();
+    const [modalOpen, setModalOpen] = useState<boolean>(false);
+
+
+
 
     useEffect(() => {
         loadExercises(parseInt(workout_id as string));
@@ -60,7 +177,7 @@ export default function WorkoutsScreen() {
     }
 
     return (
-        <View className="flex bg-slate-950 w-full h-full justify-start flex-col">
+        <View className="flex bg-[hsl(210,5%,7%)] w-full h-full justify-start flex-col">
             <Text
                 style={{ fontFamily: "SofiaSans_100Thin_Italic" }}
                 className="text-white font-bold text-3xl text-center p-4"
@@ -68,79 +185,12 @@ export default function WorkoutsScreen() {
                 Exercises
             </Text>
             <FlatList
-                className="bg-slate-900 p-4 m-2 border-[#16213b] rounded-xs flex fle-col gap-6"
-                contentContainerStyle={{ justifyContent: "space-evenly", gap: 1 }}
+                className=" p-4 m-2 border-[#16213b] rounded-xs flex fle-col gap-6"
+                contentContainerStyle={{ justifyContent: "space-evenly", gap: 20 }}
                 data={exercisesWithSets}
                 keyExtractor={(item) => item.id?.toString() ?? "unknown"}
                 renderItem={({ item }) => (
-                    <TouchableOpacity
-                        className="bg-[#151f38] border-slate-800 border rounded-sm p-4 flex flex-col gap-4"
-                        onPress={() =>
-                            router.push(
-                                `mesocycles/${mesocycle_id}/${microcycle_id}/${workout_id}/${item.id}` as Href
-                            )
-                        }
-                    >
-                        <Text className="text-white font-semibold text-xl">
-                            {item.name}
-                        </Text>
-                        <Text className="text-white font-semibold text-xl hidden">
-                            {item.id}
-                        </Text>
-                        <View className="flex justify-center w-full">
-                            <FlatList
-                                className="flex flex-col justify-between w-full gap-4"
-                                contentContainerStyle={{
-                                    justifyContent: "space-between",
-                                    width: "100%",
-                                }}
-                                data={item.setsDetails}
-                                keyExtractor={(item) => item.id?.toString() ?? "unknown"}
-                                renderItem={({ item }) => (
-                                    <View className="flex flex-row gap-6 justify-center flex-1 border border-slate-800 bg-slate-900 px-6 py-4">
-                                        <Text className="flex flex-row items-center justify-center text-slate-500">
-                                            <FontAwesomeIcon
-                                                size={12}
-                                                style={{ margin: 0 }}
-                                                color="#64748b"
-                                                icon={faRepeat}
-                                            />{" "}
-                                            {item.reps}
-                                        </Text>
-                                        <Text className="flex flex-row items-center justify-center text-slate-500">
-                                            <FontAwesomeIcon
-                                                size={14}
-                                                style={{ margin: 0 }}
-                                                color="#64748b"
-                                                icon={faDumbbell}
-                                            />{" "}
-                                            {item.weight}
-                                        </Text>
-                                        <Text
-                                            className={`flex flex-row items-center justify-center`}
-                                            style={{ color: `${getStyleBasedOnValue(item.rpe)}` }}
-                                        >
-                                            <FontAwesomeIcon
-                                                size={12}
-                                                style={{ margin: 0 }}
-                                                color={getStyleBasedOnValue(item.rpe)}
-                                                icon={faChartLine}
-                                            />{" "}
-                                            {item.rpe}
-                                        </Text>
-                                    </View>
-                                )}
-                            />
-                        </View>
-                        <TouchableOpacity
-                            className="bg-rose-700 rounded-xs w-full"
-                            onPress={() => deleteExercise(item.id)}
-                        >
-                            <Text className="text-white py-2 px-4  font-bold text-center">
-                                Remove
-                            </Text>
-                        </TouchableOpacity>
-                    </TouchableOpacity>
+                    <WorkoutItem mesocycle_id={mesocycle_id} microcycle_id={microcycle_id} workout_id={workout_id} item={item} setModalOpen={setModalOpen} deleteExercise={deleteExercise} />
                 )}
             />
             <View className="flex flex-col gap-6 justify-center">
