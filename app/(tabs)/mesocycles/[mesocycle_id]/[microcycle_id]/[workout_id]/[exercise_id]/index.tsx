@@ -4,8 +4,8 @@ import { FlatList, Text, Button, View, TouchableOpacity, TextInput } from 'react
 import { Link, useRouter, useLocalSearchParams, usePathname, Href } from 'expo-router';
 import useItemStore from '@/app/stores/store';
 import Ionicons from "@expo/vector-icons/Ionicons";
-import {FontAwesomeIcon} from "@fortawesome/react-native-fontawesome";
-import {faArrowAltCircleDown} from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
+import { faArrowAltCircleDown } from "@fortawesome/free-solid-svg-icons";
 
 
 export default function ExercisesScreen() {
@@ -20,7 +20,7 @@ export default function ExercisesScreen() {
 
     useEffect(() => {
         loadSets(parseInt(exercise_id as string));
-    }, [exercise_id]);
+    }, [exercise_id, sets]);
 
     const getStyleBasedOnValue = (value: number) => {
         if (value === 0) {
@@ -79,34 +79,34 @@ export default function ExercisesScreen() {
                 )}
             />
             <View className='flex flex-col gap-4 justify-center'>
-                <TouchableOpacity onPress={()=>{setOpen(!open)}} className={'flex flex-row gap-6 bg-slate-800 rounded-md p-3 items-center justify-center'}>
+                <TouchableOpacity onPress={() => { setOpen(!open) }} className={'flex flex-row gap-6 bg-[hsl(221,20%,15%)] rounded-md p-3 items-center justify-center'}>
                     <Text className='text-slate-400 text-center'>Add Set</Text>
-                    <Ionicons size={20} name={'arrow-up'} color={'white'}/>
+                    <Ionicons size={20} name={'arrow-up'} color={'white'} />
                 </TouchableOpacity>
 
-                    <View className={`grid ${open ? 'grid-rows-[1fr] h-auto' : 'grid-rows-[0fr] h-0'}  gap-8 overflow-hidden w-full`}>
+                <View className={`grid ${open ? 'grid-rows-[1fr] h-auto' : 'grid-rows-[0fr] h-0'}  gap-8 overflow-hidden w-full`}>
 
-                <TextInput
-                    className='bg-slate-300 w-4/5 m-auto p-4 rounded-md'
-                    placeholder='Reps...'
-                    onChangeText={setNumReps}
-                    value={numReps}
-                />
-                <TextInput
-                    className='bg-slate-300 w-4/5 m-auto p-4 rounded-md'
-                    placeholder='Weight...'
-                    onChangeText={setAmtWeight}
-                    value={amtWeight}
-                />
-                <TextInput
-                    className='bg-slate-300 w-4/5 m-auto p-4 rounded-md'
-                    placeholder='Rpe...'
-                    onChangeText={setRpeScale}
-                    value={rpeScale}
-                />
-                <TouchableOpacity className='flex justify-center items-center bg-slate-900 rounded-xs w-full py-4' onPress={() => { setOpen(false),addSet(Number(exercise_id), parseInt(numReps), parseInt(amtWeight), parseInt(rpeScale)), setAmtWeight(""), setNumReps(""), setRpeScale("") }} disabled={!rpeScale && !amtWeight && !numReps}>
-                    <Text className='text-white py-4 px-6 font-bold text-center'>Add Set</Text>
-                </TouchableOpacity>
+                    <TextInput
+                        className='bg-slate-300 w-4/5 m-auto p-4 rounded-md'
+                        placeholder='Reps...'
+                        onChangeText={setNumReps}
+                        value={numReps}
+                    />
+                    <TextInput
+                        className='bg-slate-300 w-4/5 m-auto p-4 rounded-md'
+                        placeholder='Weight...'
+                        onChangeText={setAmtWeight}
+                        value={amtWeight}
+                    />
+                    <TextInput
+                        className='bg-slate-300 w-4/5 m-auto p-4 rounded-md'
+                        placeholder='Rpe...'
+                        onChangeText={setRpeScale}
+                        value={rpeScale}
+                    />
+                    <TouchableOpacity className='flex justify-center items-center bg-[hsl(221,20%,25%)] rounded-xs w-full py-4' onPress={() => { setOpen(false), addSet(Number(exercise_id), parseInt(numReps), parseInt(amtWeight), parseInt(rpeScale)), setAmtWeight(""), setNumReps(""), setRpeScale("") }} disabled={!rpeScale && !amtWeight && !numReps}>
+                        <Text className='text-white py-4 px-6 font-bold text-center'>Add Set</Text>
+                    </TouchableOpacity>
                 </View>
             </View>
         </View>

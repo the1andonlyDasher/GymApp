@@ -25,6 +25,7 @@ export const createTables = async () => {
     `CREATE TABLE IF NOT EXISTS Microcycles (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       mesocycle_id INTEGER,
+      num_microcycles INTEGER
       name TEXT NOT NULL,
       FOREIGN KEY (mesocycle_id) REFERENCES Mesocycles(id)
     );`
@@ -35,6 +36,7 @@ export const createTables = async () => {
     `CREATE TABLE IF NOT EXISTS Workouts (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       microcycle_id INTEGER,
+      num_workouts INTEGER
       name TEXT NOT NULL,
       FOREIGN KEY (microcycle_id) REFERENCES Microcycles(id)
     );`
@@ -54,13 +56,60 @@ export const createTables = async () => {
     );`
   );
 
-  // Create Exercises_Presets table
+  // Create Exercise_Presets table
   await db.execAsync(
-      `CREATE TABLE IF NOT EXISTS Exercise_Presets (
+    `CREATE TABLE IF NOT EXISTS Exercise_Presets (
        id INTEGER PRIMARY KEY AUTOINCREMENT,
-       name TEXT NOT NULL,
-        );`
+       name TEXT NOT NULL UNIQUE
+    );`
   );
+
+  // Insert exercises into Exercise_Presets
+  const exercises = [
+    "Front Squats",
+    "Romanian Deadlift",
+    "Seated Leg Curls",
+    "Single Leg Press",
+    "Standing Calf Raises",
+    "Donkey Calf Raises",
+    "Incline Bench Press",
+    "Dumbell Rows",
+    "Chest Press Machine",
+    "High Row",
+    "Chest Fly Machine",
+    "T Bar Rows",
+    "Scott Curl Machine",
+    "Skull Crushers/Pullovers",
+    "Cable Side Raises",
+    "Cable Reverse Flies",
+    "Incline Dumbell Curls",
+    "Cable Overhead Triceps Extensions",
+  ];
+
+  await db.execAsync(
+    `DELETE FROM Exercise_Presets
+     WHERE id NOT IN (
+         SELECT MIN(id)
+         FROM Exercise_Presets
+         GROUP BY name
+     );`
+  );
+
+  for (const exercise of exercises) {
+    const statement = await db.prepareAsync(
+      `INSERT OR IGNORE INTO Exercise_Presets (name) VALUES ($value);`
+    );
+
+    try {
+      const result = await statement.executeAsync([exercise]);
+      console.log(result);
+      return result.lastInsertRowId;
+    } catch (error) {
+      console.error("Error adding exercise:", error);
+    } finally {
+      await statement.finalizeAsync();
+    }
+  }
 
   // Create Sets table
   await db.execAsync(

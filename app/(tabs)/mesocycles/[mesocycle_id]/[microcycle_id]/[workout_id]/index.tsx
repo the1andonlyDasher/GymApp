@@ -1,6 +1,6 @@
 // app/mesocycles/[mesocycleId]/index.tsx
-import {Picker} from '@react-native-picker/picker';
-import React, { Dispatch, useEffect, useState } from "react";
+import { Picker } from "@react-native-picker/picker";
+import React, { Dispatch, Suspense, useEffect, useState } from "react";
 import {
     FlatList,
     Text,
@@ -16,14 +16,24 @@ import {
     usePathname,
     Href,
 } from "expo-router";
-import useItemStore, { ExerciseWithSets, Set, Workout } from "@/app/stores/store";
+import useItemStore, {
+    Exercise,
+    ExercisePreset,
+    ExerciseWithSets,
+    Set,
+    Workout,
+} from "@/app/stores/store";
 import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
 import {
     faChartLine,
     faDumbbell,
     faRepeat,
 } from "@fortawesome/free-solid-svg-icons";
-import { SofiaSans_100Thin_Italic, SofiaSans_700Bold, useFonts } from "@expo-google-fonts/sofia-sans";
+import {
+    SofiaSans_100Thin_Italic,
+    SofiaSans_700Bold,
+    useFonts,
+} from "@expo-google-fonts/sofia-sans";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
 const WorkoutItem = ({
@@ -32,16 +42,16 @@ const WorkoutItem = ({
     workout_id,
     item,
     setModalOpen,
-    deleteExercise
+    deleteExercise,
 }: {
-    mesocycle_id: string | string[],
-    microcycle_id: string | string[],
-    workout_id: string | string[],
-    item: ExerciseWithSets
-    setModalOpen: Dispatch<React.SetStateAction<boolean>>
-    deleteExercise: (id: number) => Promise<void>
+    mesocycle_id: string | string[];
+    microcycle_id: string | string[];
+    workout_id: string | string[];
+    item: ExerciseWithSets;
+    setModalOpen: Dispatch<React.SetStateAction<boolean>>;
+    deleteExercise: (id: number) => Promise<void>;
 }) => {
-    const router = useRouter()
+    const router = useRouter();
     const [showSets, setShowSets] = useState<boolean>(false);
     const getStyleBasedOnValue = (value: number) => {
         if (value === 0) {
@@ -71,26 +81,34 @@ const WorkoutItem = ({
                         {item.id}
                     </Text>
                 </View>
-                <TouchableOpacity
-                    className={`${showSets ? 'bg-[hsl(210,5%,4%)] rotate-180' : 'bg-emerald-500 rotate-0'} rounded-md p-3 flex items-center justify-center aspect-square`}
-                    onPress={() => setShowSets(!showSets)}
-                >
-                    <Ionicons name="arrow-down" size={20} color="white" />
-                </TouchableOpacity>
-                <TouchableOpacity
-                    className="bg-sky-700 rounded-md p-3 flex items-center justify-center aspect-square"
-                    onPress={() => setModalOpen(true)}
-                >
-                    <Ionicons name="pencil" size={20} color="white" />
-                </TouchableOpacity>
-                <TouchableOpacity
-                    className="bg-rose-700 rounded-md p-3 flex items-center justify-center aspect-square"
-                    onPress={() => deleteExercise(item.id)}
-                >
-                    <Ionicons name="trash-bin" size={20} color="white" />
-                </TouchableOpacity>
+                <View className="flex flex-row flex-[1_1_min-content] gap-2 items-center">
+                    <TouchableOpacity
+                        className={`${showSets
+                            ? "bg-[hsl(210,5%,4%)] rotate-180"
+                            : "bg-emerald-500 rotate-0"
+                            } rounded-md p-3 flex max-w-12 items-center justify-center aspect-square`}
+                        onPress={() => setShowSets(!showSets)}
+                    >
+                        <Ionicons name="arrow-down" size={20} color="white" />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        className="bg-sky-700 rounded-md max-w-12 p-3 flex items-center justify-center aspect-square"
+                        onPress={() => setModalOpen(true)}
+                    >
+                        <Ionicons name="pencil" size={20} color="white" />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        className="bg-rose-700 rounded-md max-w-12 p-3 flex items-center justify-center aspect-square"
+                        onPress={() => deleteExercise(item.id)}
+                    >
+                        <Ionicons name="trash-bin" size={20} color="white" />
+                    </TouchableOpacity>
+                </View>
             </View>
-            <View className={`grid ${showSets ? 'grid-rows-[1fr] h-auto' : 'grid-rows-[0fr] h-0'}  overflow-hidden w-full`}>
+            <View
+                className={`grid ${showSets ? "grid-rows-[1fr] h-auto" : "grid-rows-[0fr] h-0"
+                    }  overflow-hidden w-full`}
+            >
                 <FlatList
                     className="flex flex-col justify-between w-full gap-4 overflow-hidden"
                     contentContainerStyle={{
@@ -136,8 +154,8 @@ const WorkoutItem = ({
                 />
             </View>
         </TouchableOpacity>
-    )
-}
+    );
+};
 
 export default function WorkoutsScreen() {
     const { mesocycle_id, microcycle_id, workout_id } = useLocalSearchParams();
@@ -146,19 +164,20 @@ export default function WorkoutsScreen() {
         addExercise,
         deleteExercise,
         exercisesWithSets,
+        exercisePresets,
+        loadExercisePresets,
         loadSetsAndExercises,
     } = useItemStore();
     const router = useRouter();
     const [workoutName, setWorkoutName] = useState<string>("");
     const [modalOpen, setModalOpen] = useState<boolean>(false);
-
-
-
+    console.log(exercisePresets)
 
     useEffect(() => {
+        loadExercisePresets()
         loadExercises(parseInt(workout_id as string));
         loadSetsAndExercises(parseInt(workout_id as string));
-    }, [workout_id]);
+    }, [workout_id, exercisesWithSets]);
 
     const getStyleBasedOnValue = (value: number) => {
         if (value === 0) {
@@ -191,25 +210,42 @@ export default function WorkoutsScreen() {
                 data={exercisesWithSets}
                 keyExtractor={(item) => item.id?.toString() ?? "unknown"}
                 renderItem={({ item }) => (
-                    <WorkoutItem mesocycle_id={mesocycle_id} microcycle_id={microcycle_id} workout_id={workout_id} item={item} setModalOpen={setModalOpen} deleteExercise={deleteExercise} />
+                    <WorkoutItem
+                        mesocycle_id={mesocycle_id}
+                        microcycle_id={microcycle_id}
+                        workout_id={workout_id}
+                        item={item}
+                        setModalOpen={setModalOpen}
+                        deleteExercise={deleteExercise}
+                    />
                 )}
             />
-            <View className="flex flex-col gap-6 justify-center">
-                <Text className="text-slate-400 text-center">
-                    Choose your exercise name
-                </Text>
-                <TextInput
-                    className="bg-slate-300 w-4/5 m-auto p-4 rounded-md"
-                    placeholder="Exercise Name..."
-                    onChangeText={setWorkoutName}
-                    value={workoutName}
-                ></TextInput>
-                <Picker dropdownIconColor={'white'} style={{backgroundColor:'hsl(210,5%,7%)'}} onValueChange={(itemValue) => console.log(itemValue)} selectedValue="0">
-                    <Picker.Item label="Select an exercise" value="0" style={{backgroundColor:'#000'}} color="#fff"/>
-                    <Picker.Item label="Bench Press" value="1"  style={{backgroundColor:'#000'}} color="#fff"/>
-                    <Picker.Item label="Squat" value="2"  style={{backgroundColor:'#000'}} color="#fff"/>
-                    <Picker.Item label="Deadlift" value="3"  style={{backgroundColor:'#000'}} color="#fff"/>
-                </Picker>
+            <View className="flex flex-col justify-center">
+                <Text className="text-slate-400 text-center pb-3">Choose your exercise</Text>
+                <Suspense>
+                    <Picker
+                        selectionColor={"red"}
+                        dropdownIconColor={"white"}
+                        style={{ backgroundColor: "hsl(210,5%,7%)" }}
+                        onValueChange={(itemValue) => setWorkoutName(itemValue)}
+                        selectedValue="0"
+                    ><Picker.Item
+                            label={"Choose your exercise"}
+                            value={"0"}
+                            style={{ backgroundColor: "hsl(210,5%,11%)" }}
+                            color="#fff"
+                        />
+                        {exercisePresets.map((exercise: ExercisePreset, index: number) => (
+                            <Picker.Item
+                                key={exercise.id}
+                                label={exercise.name}
+                                value={exercise.name}
+                                style={{ backgroundColor: "hsl(210,5%,11%)" }}
+                                color="#fff"
+                            />
+                        ))}
+                    </Picker>
+                </Suspense>
                 <TouchableOpacity
                     className="bg-slate-800 rounded-xs w-full"
                     onPress={() => {
@@ -217,7 +253,6 @@ export default function WorkoutsScreen() {
                     }}
                     disabled={!workoutName}
                 >
-
                     <Text className="text-white py-4 px-6  font-bold text-center">
                         Add Exercise
                     </Text>

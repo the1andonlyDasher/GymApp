@@ -3,6 +3,7 @@ import { StyleSheet, Text, View, Button, TextInput, FlatList, TouchableOpacity, 
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { createTables, getDBConnection, resetDatabase, } from '@/db/db';
 import { SofiaSans_400Regular, SofiaSans_600SemiBold, useFonts } from "@expo-google-fonts/sofia-sans"
+import CalendarComponent from '@/components/Calendar';
 
 interface Item {
   id: number;
@@ -128,19 +129,8 @@ export default function Index(): JSX.Element {
 
 
   return (
-    <View className='bg-slate-950 flex flex-col gap-4 flex-1 justify-center items-center p-8'>
-      <Text className='font-extrabold text-4xl text-white'>SQLite Items</Text>
-
-      <TouchableOpacity className='bg-orange-400  rounded-sm w-full' onPress={() => { setOpen(true) }}  >
-        <Text className='text-black py-4 px-6 uppercase font-bold text-center'>Add item</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity className='bg-slate-900 border-white border rounded-sm w-full' disabled={!nameValue || !ageValue} >
-        <Text className='text-white py-4 px-6 font-bold text-center'>Delete Item</Text>
-      </TouchableOpacity >
-      <TouchableOpacity className='bg-slate-800 rounded-xs w-full' onPress={() => resetDatabase()} >
-        <Text className='text-white py-4 px-6  font-bold text-center'>Reset Database</Text>
-      </TouchableOpacity>
+    <View className='bg-[hsl(221,20%,7%)] flex flex-col gap-4 flex-1 justify-center items-center p-8'>
+      <CalendarComponent />
     </View >
   );
 }

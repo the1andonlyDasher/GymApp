@@ -8,12 +8,14 @@ import { getDBConnection, insertMesocycle } from "@/db/db";
 export interface Mesocycle {
   id: number;
   name: string;
+  num_microcycles: number;
 }
 
 export interface Microcycle {
   id: number;
   name: string;
   mesocycle_id: number;
+  num_workouts: number;
 }
 
 export interface Workout {
@@ -25,6 +27,19 @@ export interface Workout {
 export interface Exercise {
   id: number;
   workout_id: number;
+  name: string;
+}
+
+export interface MesoPreset {
+  num_microcycles: number;
+}
+
+export interface MicroPreset {
+  num_workouts: number;
+}
+
+export interface ExercisePreset {
+  id: number;
   name: string;
 }
 
@@ -51,14 +66,24 @@ interface ItemStore {
   microcycles: Microcycle[];
   workouts: Workout[];
   exercises: Exercise[];
+  exercisePresets: ExercisePreset[];
+  mesocyclePresets: MesoPreset[];
+  loadMesoPresets: () => Promise<void>;
+  microcyclePresets: MicroPreset[];
+  loadMicroPresets: () => Promise<void>;
+  loadExercisePresets: () => Promise<void>;
   sets: Set[];
   exercisesWithSets: ExerciseWithSets[];
   loadMesocycles: () => Promise<void>;
   deleteMesocycle: (id: number) => Promise<void>;
-  addMesocycle: (name: string) => Promise<void>;
+  addMesocycle: (name: string, num_microcycles: number) => Promise<void>;
   loadMicrocycles: (mesocycle_id: number) => Promise<void>;
   deleteMicrocycle: (id: number) => Promise<void>;
-  addMicrocycle: (mesocycle_id: number, name: string) => Promise<void>;
+  addMicrocycle: (
+    mesocycle_id: number,
+    name: string,
+    num_workouts: number
+  ) => Promise<void>;
   addWorkout: (microcycle_id: number, name: string) => Promise<void>;
   deleteWorkout: (id: number) => Promise<void>;
   loadWorkouts: (microcycle_id: number) => Promise<void>;
@@ -83,6 +108,30 @@ const useItemStore = create<ItemStore>()(
       microcycles: [],
       workouts: [],
       exercises: [],
+      exercisePresets: [],
+      loadExercisePresets: async () => {
+        const db = await getDBConnection();
+        const exercisePresets = await db.getAllAsync<ExercisePreset>(
+          "SELECT * FROM Exercise_Presets"
+        );
+        set({ exercisePresets: exercisePresets });
+      },
+      mesocyclePresets: [],
+      loadMesoPresets: async () => {
+        const db = await getDBConnection();
+        const mesocyclePresets = await db.getAllAsync<MesoPreset>(
+          "SELECT * FROM Mesocycle_Presets"
+        );
+        set({ mesocyclePresets: mesocyclePresets });
+      },
+      microcyclePresets: [],
+      loadMicroPresets: async () => {
+        const db = await getDBConnection();
+        const microcyclePresets = await db.getAllAsync<MicroPreset>(
+          "SELECT * FROM Mesocycle_Presets"
+        );
+        set({ microcyclePresets: microcyclePresets });
+      },
       sets: [],
       exercisesWithSets: [],
       loadMesocycles: async () => {
@@ -92,11 +141,11 @@ const useItemStore = create<ItemStore>()(
         );
         set({ mesocycles: mesocycles });
       },
-      addMesocycle: async (name: string) => {
+      addMesocycle: async (name: string, num_microcycles: number) => {
         const db = await getDBConnection();
         const id = await insertMesocycle(name);
         set((state) => ({
-          mesocycles: [...state.mesocycles, { id, name }],
+          mesocycles: [...state.mesocycles, { id, name, num_microcycles }],
         }));
       },
       deleteMesocycle: async (id: number) => {
@@ -146,7 +195,11 @@ const useItemStore = create<ItemStore>()(
           await statement.finalizeAsync();
         }
       },
-      addMicrocycle: async (mesocycle_id: number, name: string) => {
+      addMicrocycle: async (
+        mesocycle_id: number,
+        name: string,
+        num_workouts: number
+      ) => {
         const db = await getDBConnection();
         const statement = await db.prepareAsync(
           "INSERT INTO Microcycles (mesocycle_id, name) VALUES ($mesocycle_id, $name)"
@@ -160,7 +213,7 @@ const useItemStore = create<ItemStore>()(
           set((state) => ({
             microcycles: [
               ...state.microcycles,
-              { id: result.lastInsertRowId, mesocycle_id, name },
+              { id: result.lastInsertRowId, mesocycle_id, name, num_workouts },
             ],
           }));
         } catch (error) {
