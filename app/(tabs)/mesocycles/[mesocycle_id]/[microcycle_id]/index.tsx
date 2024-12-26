@@ -57,7 +57,7 @@ export default function MicrocyclesScreen() {
         <View className="flex bg-[hsl(210,5%,7%)] w-full h-full justify-start flex-col">
             <Text style={{ fontFamily: "SofiaSans_700Bold" }} className='text-white font-bold text-3xl text-center p-4'>Workouts</Text>
             <FlatList
-                className="bg-[hsl(210,5%,9%)] p-4 m-2 border-[#16213b] rounded-xs flex fle-col gap-6"
+                className="bg-[hsl(210,5%,7%)] p-4 m-2 rounded-xs flex fle-col gap-6"
                 contentContainerStyle={{ justifyContent: "space-evenly", gap: 10 }}
                 data={workouts}
                 keyExtractor={(item) => item.id.toString()}

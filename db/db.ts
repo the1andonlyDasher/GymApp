@@ -54,6 +54,14 @@ export const createTables = async () => {
     );`
   );
 
+  // Create Exercises_Presets table
+  await db.execAsync(
+      `CREATE TABLE IF NOT EXISTS Exercise_Presets (
+       id INTEGER PRIMARY KEY AUTOINCREMENT,
+       name TEXT NOT NULL,
+        );`
+  );
+
   // Create Sets table
   await db.execAsync(
     `CREATE TABLE IF NOT EXISTS Sets (

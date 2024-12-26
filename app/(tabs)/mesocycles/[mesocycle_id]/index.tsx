@@ -56,7 +56,7 @@ export default function MesocyclesScreen() {
         <View className="flex bg-[hsl(210,5%,7%)] w-full h-full justify-start flex-col">
             <Text className="font-semibold text-2xl text-[hsl(206,13%,79%)] py-4 text-center">Microcycles</Text>
             <FlatList
-                className="bg-[hsl(210,5%,9%)] p-4 m-2 border-[#16213b] rounded-xs flex fle-col gap-6"
+                className="bg-[hsl(210,5%,7%)] p-4 m-2  rounded-xs flex fle-col gap-6"
                 contentContainerStyle={{ justifyContent: "space-evenly" }}
                 data={microcycles}
                 keyExtractor={(item) => item.id.toString()}

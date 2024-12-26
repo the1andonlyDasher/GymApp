@@ -1,4 +1,5 @@
 // app/mesocycles/[mesocycleId]/index.tsx
+import {Picker} from '@react-native-picker/picker';
 import React, { Dispatch, useEffect, useState } from "react";
 import {
     FlatList,
@@ -54,7 +55,7 @@ const WorkoutItem = ({
     };
     return (
         <TouchableOpacity
-            className="bg-[hsl(210,5%,11%)] border-[hsl(210,5%,15%)] border rounded-sm p-4 flex flex-col gap-4"
+            className="bg-[hsl(221,20%,16%)] border-[hsl(221,20%,20%)] border rounded-sm p-4 flex flex-col gap-4"
             onPress={() =>
                 router.push(
                     `mesocycles/${mesocycle_id}/${microcycle_id}/${workout_id}/${item.id}` as Href
@@ -203,6 +204,12 @@ export default function WorkoutsScreen() {
                     onChangeText={setWorkoutName}
                     value={workoutName}
                 ></TextInput>
+                <Picker dropdownIconColor={'white'} style={{backgroundColor:'hsl(210,5%,7%)'}} onValueChange={(itemValue) => console.log(itemValue)} selectedValue="0">
+                    <Picker.Item label="Select an exercise" value="0" style={{backgroundColor:'#000'}} color="#fff"/>
+                    <Picker.Item label="Bench Press" value="1"  style={{backgroundColor:'#000'}} color="#fff"/>
+                    <Picker.Item label="Squat" value="2"  style={{backgroundColor:'#000'}} color="#fff"/>
+                    <Picker.Item label="Deadlift" value="3"  style={{backgroundColor:'#000'}} color="#fff"/>
+                </Picker>
                 <TouchableOpacity
                     className="bg-slate-800 rounded-xs w-full"
                     onPress={() => {
@@ -210,6 +217,7 @@ export default function WorkoutsScreen() {
                     }}
                     disabled={!workoutName}
                 >
+
                     <Text className="text-white py-4 px-6  font-bold text-center">
                         Add Exercise
                     </Text>
