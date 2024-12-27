@@ -1,5 +1,5 @@
 // app/mesocycles/index.tsx
-import React, { useEffect, useRef, useState } from "react";
+import React, { Suspense, useEffect, useRef, useState } from "react";
 import {
     FlatList,
     Text,
@@ -17,6 +17,7 @@ import useItemStore, { Mesocycle } from "@/app/stores/store";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { getDBConnection } from "@/db/db";
 import AnimatedModal from "@/components/Modal";
+import { Picker } from "@react-native-picker/picker";
 
 export const updateMesocycleName = async (newName: string, id: number) => {
     const db = await getDBConnection();
@@ -47,11 +48,12 @@ export const updateMesocycleName = async (newName: string, id: number) => {
 
 
 export default function MesocyclesMainScreen() {
-    const { mesocycles, loadMesocycles, addMesocycle, deleteMesocycle } =
+    const { mesocycles, loadMesocycles, addMesocycle, deleteMesocycle, mesocyclePresets } =
         useItemStore();
     const router = useRouter();
 
     const [mesocycleName, setMesocycleName] = useState<string>("");
+    const [num_microCycles, setNumMicroCycles] = useState<number>(0);
     const [modalOpen, setModalOpen] = useState<boolean>(false);
 
     const openModal = () => {
@@ -114,17 +116,22 @@ export default function MesocyclesMainScreen() {
                     onChangeText={setMesocycleName}
                     value={mesocycleName}
                 ></TextInput>
-                <TouchableOpacity
-                    className="bg-slate-800 rounded-xs w-full"
-                    onPress={() => {
-                        addMesocycle(mesocycleName), setMesocycleName("");
-                    }}
-                    disabled={!mesocycleName}
-                >
-                    <Text className="text-white py-4 px-6  font-bold text-center">
-                        Add Mesocycle
-                    </Text>
-                </TouchableOpacity>
+                <Suspense>
+                    <Picker
+                        selectionColor={"red"}
+                        dropdownIconColor={"white"}
+                        style={{ backgroundColor: "hsl(210,5%,7%)" }}
+                        onValueChange={(itemValue) => setMesocycleName(itemValue)}
+                        selectedValue="0"
+                    ><Picker.Item
+                            label={"Choose your exercise"}
+                            value={"0"}
+                            style={{ backgroundColor: "hsl(210,5%,11%)" }}
+                            color="#fff"
+                        />
+                    </Picker>
+                </Suspense>
+
             </View>
         </View>
     );

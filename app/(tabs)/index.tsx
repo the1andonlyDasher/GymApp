@@ -4,6 +4,7 @@ import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from '
 import { createTables, getDBConnection, resetDatabase, } from '@/db/db';
 import { SofiaSans_400Regular, SofiaSans_600SemiBold, useFonts } from "@expo-google-fonts/sofia-sans"
 import CalendarComponent from '@/components/Calendar';
+import CreatePreset from '@/components/CreatePreset';
 
 interface Item {
   id: number;
@@ -130,7 +131,7 @@ export default function Index(): JSX.Element {
 
   return (
     <View className='bg-[hsl(221,20%,7%)] flex flex-col gap-4 flex-1 justify-center items-center p-8'>
-      <CalendarComponent />
+      <CreatePreset />
     </View >
   );
 }

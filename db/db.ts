@@ -1,3 +1,4 @@
+import { Mesocycle } from "@/app/stores/store";
 import * as SQLite from "expo-sqlite";
 
 export const getDBConnection = async () => {
@@ -16,6 +17,7 @@ export const createTables = async () => {
     PRAGMA journal_mode = WAL;
     CREATE TABLE IF NOT EXISTS Mesocycles (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
+      num_microcycles INTEGER,
       name TEXT NOT NULL
     );`
   );
@@ -24,8 +26,8 @@ export const createTables = async () => {
   await db.execAsync(
     `CREATE TABLE IF NOT EXISTS Microcycles (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
+      num_workouts INTEGER,
       mesocycle_id INTEGER,
-      num_microcycles INTEGER
       name TEXT NOT NULL,
       FOREIGN KEY (mesocycle_id) REFERENCES Mesocycles(id)
     );`
@@ -36,7 +38,6 @@ export const createTables = async () => {
     `CREATE TABLE IF NOT EXISTS Workouts (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       microcycle_id INTEGER,
-      num_workouts INTEGER
       name TEXT NOT NULL,
       FOREIGN KEY (microcycle_id) REFERENCES Microcycles(id)
     );`
@@ -53,6 +54,15 @@ export const createTables = async () => {
       reps INTEGER,
       rpe REAL,
       FOREIGN KEY (workout_id) REFERENCES Workouts(id)
+    );`
+  );
+
+  // Create Mesocycle_Presets table
+  await db.execAsync(
+    `CREATE TABLE IF NOT EXISTS Mesocycle_Presets (
+       id INTEGER PRIMARY KEY AUTOINCREMENT,
+       name TEXT NOT NULL UNIQUE
+       num_microcycles INTEGER NOT NULL
     );`
   );
 
@@ -134,14 +144,18 @@ export const resetDatabase = async () => {
 };
 
 //create a new mesocycle
-export const insertMesocycle = async (name: string) => {
+export const insertMesocycle = async (mesocycle: Mesocycle) => {
   const db = await getDBConnection();
   const statement = await db.prepareAsync(
-    `INSERT INTO Mesocycles (name) VALUES (?);`
+    `INSERT INTO Mesocycles (id, name, num_microcycles) VALUES (?, ?, ? );`
   );
 
   try {
-    const result = await statement.executeAsync([name]);
+    const result = await statement.executeAsync([
+      mesocycle.id,
+      mesocycle.name,
+      mesocycle.num_microcycles,
+    ]);
     console.log("Inserted Mesocycle with ID:", result.lastInsertRowId);
     return result.lastInsertRowId; // Return the ID to use in Microcycles
   } finally {

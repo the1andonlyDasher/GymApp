@@ -69,14 +69,18 @@ interface ItemStore {
   exercisePresets: ExercisePreset[];
   mesocyclePresets: MesoPreset[];
   loadMesoPresets: () => Promise<void>;
+  addMesoPreset: (mesocycle: Omit<Mesocycle, "id">) => Promise<void>;
   microcyclePresets: MicroPreset[];
   loadMicroPresets: () => Promise<void>;
+  addMicroPreset: (
+    microcycle: Pick<Microcycle, "name" | "num_workouts">
+  ) => Promise<void>;
   loadExercisePresets: () => Promise<void>;
   sets: Set[];
   exercisesWithSets: ExerciseWithSets[];
   loadMesocycles: () => Promise<void>;
   deleteMesocycle: (id: number) => Promise<void>;
-  addMesocycle: (name: string, num_microcycles: number) => Promise<void>;
+  addMesocycle: (mesocycle: Mesocycle) => Promise<void>;
   loadMicrocycles: (mesocycle_id: number) => Promise<void>;
   deleteMicrocycle: (id: number) => Promise<void>;
   addMicrocycle: (
@@ -124,6 +128,28 @@ const useItemStore = create<ItemStore>()(
         );
         set({ mesocyclePresets: mesocyclePresets });
       },
+      addMesoPreset: async (mesocycle) => {
+        const db = await getDBConnection();
+        const statement = await db.prepareAsync(
+          "INSERT INTO Mesocycle_Presets ( name, num_microcycles) VALUES ($id, $name, $num_microcycles)"
+        );
+
+        try {
+          const result = await statement.executeAsync({
+            $name: mesocycle.name,
+            $num_microcycles: mesocycle.num_microcycles,
+          });
+          if (result) {
+            set((state) => ({
+              mesocyclePresets: [mesocycle, ...state.mesocyclePresets],
+            }));
+          }
+        } catch (error) {
+          console.error("Error adding microcycle:", error);
+        } finally {
+          await statement.finalizeAsync();
+        }
+      },
       microcyclePresets: [],
       loadMicroPresets: async () => {
         const db = await getDBConnection();
@@ -131,6 +157,28 @@ const useItemStore = create<ItemStore>()(
           "SELECT * FROM Mesocycle_Presets"
         );
         set({ microcyclePresets: microcyclePresets });
+      },
+      addMicroPreset: async (microcycle) => {
+        const db = await getDBConnection();
+        const statement = await db.prepareAsync(
+          "INSERT INTO Microcycle_Presets (id, name, num_workouts) VALUES ($id, $name, $num_workouts)"
+        );
+
+        try {
+          const result = await statement.executeAsync({
+            $name: microcycle.name,
+            $num_workouts: microcycle.num_workouts,
+          });
+          if (result) {
+            set((state) => ({
+              microcyclePresets: [microcycle, ...state.microcyclePresets],
+            }));
+          }
+        } catch (error) {
+          console.error("Error adding microcycle preset:", error);
+        } finally {
+          await statement.finalizeAsync();
+        }
       },
       sets: [],
       exercisesWithSets: [],
@@ -141,12 +189,30 @@ const useItemStore = create<ItemStore>()(
         );
         set({ mesocycles: mesocycles });
       },
-      addMesocycle: async (name: string, num_microcycles: number) => {
+      addMesocycle: async (mesocycle) => {
         const db = await getDBConnection();
-        const id = await insertMesocycle(name);
-        set((state) => ({
-          mesocycles: [...state.mesocycles, { id, name, num_microcycles }],
-        }));
+        const statement = await db.prepareAsync(
+          `INSERT INTO Mesocycles ( name, num_microcycles) VALUES ( ?, ? );`
+        );
+        try {
+          const result = await statement.executeAsync([
+            mesocycle.name,
+            mesocycle.num_microcycles,
+          ]);
+          console.log("Inserted Mesocycle with ID:", result.lastInsertRowId);
+          if (result.lastInsertRowId) {
+            set((state) => ({
+              mesocycles: [
+                ...state.mesocycles,
+                { ...mesocycle, id: result.lastInsertRowId },
+              ],
+            }));
+          }
+        } catch (error) {
+          console.log(error);
+        } finally {
+          await statement.finalizeAsync();
+        }
       },
       deleteMesocycle: async (id: number) => {
         const db = await getDBConnection();
