@@ -65,10 +65,10 @@ const WorkoutItem = ({
     };
     return (
         <TouchableOpacity
-            className="bg-[hsl(221,20%,16%)] border-[hsl(221,20%,20%)] border rounded-sm p-4 flex flex-col gap-4"
+            className="bg-[hsl(221,20%,16%)] border-[hsl(221,20%,20%)] border rounded-sm p-4 flex flex-col gap-0"
             onPress={() =>
                 router.push(
-                    `mesocycles/${mesocycle_id}/${microcycle_id}/${workout_id}/${item.id}` as Href
+                    `/mesocycles/${mesocycle_id}/${microcycle_id}/${workout_id}/${item.id}`
                 )
             }
         >
@@ -106,7 +106,7 @@ const WorkoutItem = ({
                 </View>
             </View>
             <View
-                className={`grid ${showSets ? "grid-rows-[1fr] h-auto" : "grid-rows-[0fr] h-0"
+                className={`grid ${showSets ? "grid-rows-[1fr] h-auto py-4" : "grid-rows-[0fr] h-0 py-0"
                     }  overflow-hidden w-full`}
             >
                 <FlatList
@@ -162,6 +162,7 @@ export default function WorkoutsScreen() {
     const {
         loadExercises,
         addExercise,
+        loadMicrocycles,
         deleteExercise,
         exercisesWithSets,
         exercisePresets,
@@ -171,7 +172,6 @@ export default function WorkoutsScreen() {
     const router = useRouter();
     const [workoutName, setWorkoutName] = useState<string>("");
     const [modalOpen, setModalOpen] = useState<boolean>(false);
-    console.log(exercisePresets)
 
     useEffect(() => {
         loadExercisePresets()
@@ -196,6 +196,15 @@ export default function WorkoutsScreen() {
         return console.log(error);
     }
 
+    const handleAdd = async () => {
+        try {
+            await addExercise(Number(workout_id), workoutName), setWorkoutName("");
+        }
+        catch (error) {
+            alert(`error ${error}`)
+        }
+    }
+
     return (
         <View className="flex bg-[hsl(210,5%,7%)] w-full h-full justify-start flex-col">
             <Text
@@ -211,6 +220,7 @@ export default function WorkoutsScreen() {
                 keyExtractor={(item) => item.id?.toString() ?? "unknown"}
                 renderItem={({ item }) => (
                     <WorkoutItem
+                        key={item.id}
                         mesocycle_id={mesocycle_id}
                         microcycle_id={microcycle_id}
                         workout_id={workout_id}
@@ -248,9 +258,7 @@ export default function WorkoutsScreen() {
                 </Suspense>
                 <TouchableOpacity
                     className="bg-slate-800 rounded-xs w-full"
-                    onPress={() => {
-                        addExercise(Number(workout_id), workoutName), setWorkoutName("");
-                    }}
+                    onPress={handleAdd}
                     disabled={!workoutName}
                 >
                     <Text className="text-white py-4 px-6  font-bold text-center">

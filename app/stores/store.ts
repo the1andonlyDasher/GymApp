@@ -2,8 +2,7 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import * as SQLite from "expo-sqlite";
-import { getDBConnection, insertMesocycle } from "@/db/db";
+import { getDBConnection } from "@/db/db";
 
 export interface Mesocycle {
   id: number;
@@ -44,6 +43,10 @@ export interface ExercisePreset {
   id: number;
   name: string;
 }
+export interface WorkoutPreset {
+  id: number;
+  name: string;
+}
 
 export interface Set {
   id: number;
@@ -69,6 +72,7 @@ interface ItemStore {
   workouts: Workout[];
   exercises: Exercise[];
   exercisePresets: ExercisePreset[];
+  workoutPresets: WorkoutPreset[];
   mesocyclePresets: MesoPreset[];
   loadMesoPresets: () => Promise<void>;
   addMesoPreset: (
@@ -80,6 +84,7 @@ interface ItemStore {
     microcycle: Pick<Microcycle, "name" | "num_workouts">
   ) => Promise<void>;
   loadExercisePresets: () => Promise<void>;
+  loadWorkoutPresets: () => Promise<void>;
   sets: Set[];
   exercisesWithSets: ExerciseWithSets[];
   loadMesocycles: () => Promise<void>;
@@ -109,6 +114,7 @@ interface ItemStore {
   loadSets: (exercise_id: number) => Promise<void>;
   deleteSet: (id: number) => Promise<void>;
   loadSetsAndExercises: (workout_id: number) => Promise<void>;
+  updateMicrocycle: (id: number) => Promise<void>;
 }
 
 const useItemStore = create<ItemStore>()(
@@ -119,6 +125,14 @@ const useItemStore = create<ItemStore>()(
       workouts: [],
       exercises: [],
       exercisePresets: [],
+      workoutPresets: [],
+      loadWorkoutPresets: async () => {
+        const db = await getDBConnection();
+        const workoutPresets = await db.getAllAsync<WorkoutPreset>(
+          "SELECT * FROM Workout_Presets"
+        );
+        set({ workoutPresets: workoutPresets });
+      },
       loadExercisePresets: async () => {
         const db = await getDBConnection();
         const exercisePresets = await db.getAllAsync<ExercisePreset>(
@@ -320,12 +334,11 @@ const useItemStore = create<ItemStore>()(
       // Add a new workout to a microcycle
       addWorkout: async (microcycle_id: number, name: string) => {
         const db = await getDBConnection();
-        const statement = await db.prepareAsync(
+        const addWorkoutStatement = await db.prepareAsync(
           "INSERT INTO Workouts (microcycle_id, name) VALUES ($microcycle_id, $name)"
         );
-
         try {
-          const result = await statement.executeAsync({
+          const addWorkoutResult = await addWorkoutStatement.executeAsync({
             $microcycle_id: microcycle_id,
             $name: name,
           });
@@ -333,16 +346,40 @@ const useItemStore = create<ItemStore>()(
           set((state) => ({
             workouts: [
               ...state.workouts,
-              { id: result.lastInsertRowId, microcycle_id, name },
+              {
+                id: addWorkoutResult.lastInsertRowId,
+                microcycle_id,
+                name,
+              },
             ],
           }));
+          await addWorkoutStatement.finalizeAsync();
         } catch (error) {
-          console.error("Error adding workout:", error);
-        } finally {
-          await statement.finalizeAsync();
+          console.error("Error updating microcycle:", error);
         }
       },
+      updateMicrocycle: async (id: number) => {
+        const db = await getDBConnection();
+        const result = await db.getFirstAsync<Microcycle>(
+          "SELECT num_workouts FROM Microcycles WHERE id = $id",
+          { $id: id }
+        );
 
+        const currentNumWorkouts = result?.num_workouts ?? 0;
+        console.log(currentNumWorkouts);
+        const updateMicroStatement = await db.prepareAsync(
+          "UPDATE Microcycles SET num_workouts = $num_workouts WHERE id = $id"
+        );
+        try {
+          await updateMicroStatement.executeAsync({
+            $id: id,
+            $num_workouts: currentNumWorkouts + 1,
+          });
+          await updateMicroStatement.finalizeAsync();
+        } catch (error) {
+          console.error("Error updating microcycle:", error);
+        }
+      },
       // Retrieve all workouts within a specific microcycle
       loadWorkouts: async (microcycle_id: number) => {
         const db = await getDBConnection();
@@ -362,7 +399,6 @@ const useItemStore = create<ItemStore>()(
           await statement.finalizeAsync();
         }
       },
-
       // Delete a workout by ID
       deleteWorkout: async (id: number) => {
         const db = await getDBConnection();

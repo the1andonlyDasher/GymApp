@@ -67,12 +67,10 @@ export const createTables = async () => {
     console.error("Error initializing database:", error);
   } finally {
     const res = await db.getAllAsync("SELECT * FROM Microcycles");
-    if (
-      res.find((item: any) =>
-        Object.keys(item).find((item: string) => item !== "num_workouts")
-      )
-    ) {
-      db.execAsync("ALTER TABLE Microcycles ADD COLUMN num_workouts INTEGER;");
+    if (!res.some((item: any) => Object.keys(item).includes("num_workouts"))) {
+      await db.execAsync(
+        "ALTER TABLE Microcycles ADD COLUMN num_workouts INTEGER;"
+      );
     }
     // date
     if (
@@ -149,6 +147,47 @@ export const createTables = async () => {
       )
     ) {
       db.execAsync("ALTER TABLE Mesocycle_Presets ADD COLUMN start_date DATE;");
+    }
+  }
+  // Create Workout_Presets table
+  await db.execAsync(
+    `CREATE TABLE IF NOT EXISTS Workout_Presets (
+     id INTEGER PRIMARY KEY AUTOINCREMENT,
+     name TEXT NOT NULL UNIQUE
+  );`
+  );
+
+  // Insert exercises into Workout_Presets
+  const workouts = [
+    "Back & Chest Light",
+    "Arms & Delts Heavy",
+    "Legs Light",
+    "Back & Chest Heavy",
+    "Arms & Delts Light",
+    "Legs Heavy",
+  ];
+
+  await db.execAsync(
+    `DELETE FROM Workout_Presets
+   WHERE id NOT IN (
+       SELECT MIN(id)
+       FROM Workout_Presets
+       GROUP BY name
+   );`
+  );
+
+  for (const workout of workouts) {
+    const statement = await db.prepareAsync(
+      `INSERT OR IGNORE INTO Workout_Presets (name) VALUES ($value);`
+    );
+
+    try {
+      const result = await statement.executeAsync([workout]);
+      console.log(result);
+    } catch (error) {
+      console.error("Error adding workout:", error);
+    } finally {
+      await statement.finalizeAsync();
     }
   }
 
@@ -252,7 +291,7 @@ export const insertMesocycle = async (mesocycle: Mesocycle) => {
 export const insertMicrocycle = async (mesocycleId: number, name: string) => {
   const db = await getDBConnection();
   const statement = await db.prepareAsync(
-    `INSERT INTO Microcycles (mesocycle_id, name) VALUES (?, ?);`
+    `INSERT INTO Microcycles (mesocycle_id, name, num_workouts) VALUES (?, ?, ?);`
   );
 
   try {

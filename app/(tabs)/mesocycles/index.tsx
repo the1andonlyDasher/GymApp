@@ -33,7 +33,6 @@ export const updateMesocycleName = async (newName: string, id: number) => {
         });
         const mesocycles = await result.getAllAsync();
         if (mesocycles.length > 0) {
-            console.log(`Mesocycle with ID ${id} updated successfully.`);
         } else {
             console.warn(`No Mesocycle found with ID ${id}.`);
         }

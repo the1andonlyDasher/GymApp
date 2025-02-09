@@ -1,12 +1,13 @@
 // app/mesocycles/[mesocycleId]/index.tsx
-import React, { useEffect, useState } from 'react';
+import React, { Suspense, useEffect, useState } from 'react';
 import { FlatList, Text, Button, View, TouchableOpacity, TextInput } from 'react-native';
 import { Link, useRouter, useLocalSearchParams, usePathname, Href } from 'expo-router';
-import useItemStore, { Workout } from '@/app/stores/store';
+import useItemStore, { Workout, WorkoutPreset } from '@/app/stores/store';
 import { SofiaSans_700Bold, useFonts } from '@expo-google-fonts/sofia-sans';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import AnimatedModal from '@/components/Modal';
 import { getDBConnection } from '@/db/db';
+import { Picker } from '@react-native-picker/picker';
 
 export const updateWorkoutName = async (newName: string, id: number) => {
     const db = await getDBConnection();
@@ -39,7 +40,7 @@ export default function MicrocyclesScreen() {
     const [loaded, error] = useFonts({ SofiaSans_700Bold })
     const { mesocycle_id, microcycle_id } = useLocalSearchParams();
     const path = usePathname()
-    const { loadWorkouts, addWorkout, deleteWorkout, workouts } = useItemStore();
+    const { loadWorkouts, updateMicrocycle, addWorkout, loadWorkoutPresets, workoutPresets, deleteWorkout, workouts } = useItemStore();
     const router = useRouter();
     const [workoutName, setWorkoutName] = useState<string>("")
     const [modalOpen, setModalOpen] = useState<boolean>(false);
@@ -50,11 +51,13 @@ export default function MicrocyclesScreen() {
 
 
     useEffect(() => {
+        loadWorkoutPresets()
         loadWorkouts(parseInt(microcycle_id as string));
     }, [microcycle_id, workouts]);
 
+
     return (
-        <View className="flex bg-[hsl(210,5%,7%)] w-full h-full justify-start flex-col">
+        <View className="flex bg-[hsl(210,5%,7%)] w-full h-full justify-start flex-col gap-4">
             <Text style={{ fontFamily: "SofiaSans_700Bold" }} className='text-white font-bold text-3xl text-center p-4'>Workouts</Text>
             <FlatList
                 className="bg-[hsl(210,5%,7%)] p-4 m-2 rounded-xs flex fle-col gap-6"
@@ -63,6 +66,7 @@ export default function MicrocyclesScreen() {
                 keyExtractor={(item) => item.id.toString()}
                 renderItem={({ item }) => (
                     <TouchableOpacity
+                        key={item.id}
                         className="bg-[hsl(221,20%,16%)] border-[hsl(221,20%,20%)] border rounded-sm p-4 flex flex-row items-center justify-center gap-4"
                         onPress={() => router.push(`mesocycles/${mesocycle_id}/${microcycle_id}/${item.id}` as Href)}
                     >
@@ -91,18 +95,43 @@ export default function MicrocyclesScreen() {
                     </TouchableOpacity>
                 )}
             />
-            <View className='flex flex-col gap-6 justify-center'>
-                <Text className='text-slate-400 text-center'>Choose your workout name</Text>
-                <TextInput
-                    className='bg-slate-300 w-4/5 m-auto p-4 rounded-md'
-                    placeholder='Workout Name...'
-                    onChangeText={setWorkoutName}
-                    value={workoutName}
+            <View className="flex flex-col justify-center">
+                <Text className="text-slate-400 text-center pb-3">Choose your workout</Text>
+                <Suspense>
+                    <Picker
+                        selectionColor={"red"}
+                        dropdownIconColor={"white"}
+                        style={{ backgroundColor: "hsl(210,5%,7%)" }}
+                        onValueChange={(itemValue) => setWorkoutName(itemValue)}
+                        selectedValue="0"
+                    ><Picker.Item
+                            label={"Choose your workout"}
+                            value={"0"}
+                            style={{ backgroundColor: "hsl(210,5%,11%)" }}
+                            color="#fff"
+                        />
+                        {workoutPresets.map((workout: WorkoutPreset, index: number) => (
+                            <Picker.Item
+                                key={workout.id + index}
+                                label={workout.name}
+                                value={workout.name}
+                                style={{ backgroundColor: "hsl(210,5%,11%)" }}
+                                color="#fff"
+                            />
+                        ))}
+                    </Picker>
+                </Suspense>
+                <TouchableOpacity
+                    className="bg-slate-800 rounded-xs w-full"
+                    onPress={() => {
+                        addWorkout(Number(microcycle_id), workoutName), setWorkoutName("");
+                        updateMicrocycle(Number(microcycle_id))
+                    }}
+                    disabled={!workoutName}
                 >
-
-                </TextInput>
-                <TouchableOpacity className='bg-slate-800 rounded-xs w-full' onPress={() => { addWorkout(Number(microcycle_id), workoutName), setWorkoutName("") }} disabled={!workoutName}>
-                    <Text className='text-white py-4 px-6  font-bold text-center'>Add Workout</Text>
+                    <Text className="text-white py-4 px-6  font-bold text-center">
+                        Add Workout
+                    </Text>
                 </TouchableOpacity>
             </View>
         </View>

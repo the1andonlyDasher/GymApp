@@ -22,7 +22,6 @@ export const updateMicrocycleName = async (newName: string, id: number) => {
         });
         const microcycles = await result.getAllAsync()
         if (microcycles.length > 0) {
-            console.log(`Microcycle with ID ${id} updated successfully.`);
         } else {
             console.warn(`No Microcycle found with ID ${id}.`);
         }
@@ -40,13 +39,13 @@ export const updateMicrocycleName = async (newName: string, id: number) => {
 const isMicrocycle = (cycle: Microcycle | Mesocycle): cycle is Microcycle =>
     (cycle as Microcycle).num_workouts !== undefined;
 
-const CycleProgressBar = ({ micros }: { micros: Microcycle[] | Mesocycle[] }) => {
-    const colorScale = (micro: Microcycle | Mesocycle) => {
-        const value = isMicrocycle(micro) ? micro.num_workouts : micro.num_microcycles;
+const CycleProgressBar = ({ micros }: { micros: Microcycle[] }) => {
+    const colorScale = (micro: Microcycle) => {
+        const value = micro.num_workouts
         switch (value) {
             case null:
             case undefined:
-                return "bg-transparent"
+                return "bg-[#fbfbfb]"
             case 1:
                 return "bg-[#481414]"
             case 2:
@@ -62,14 +61,14 @@ const CycleProgressBar = ({ micros }: { micros: Microcycle[] | Mesocycle[] }) =>
         }
     }
     return (<View className='flex flex-row gap-6 py-2 w-full justify-center items-center'>
-        {micros.map((micro: Microcycle | Mesocycle) => <View className={`h-full w-10` + colorScale(micro)} />)}
+        {micros.map((micro: Microcycle) => <View key={micro.id} style={{ height: 20, width: 20 }} className={colorScale(micro)} />)}
     </View>)
 }
 
 
 export default function MesocyclesScreen() {
     const { mesocycle_id, microcycle_id } = useLocalSearchParams();
-    const { loadMicrocycles, addMicrocycle, deleteMicrocycle, microcycles, microcyclePresets, loadMicroPresets } = useItemStore();
+    const { loadMicrocycles, addMicrocycle, workouts, deleteMicrocycle, microcycles, microcyclePresets, loadMicroPresets } = useItemStore();
     const router = useRouter();
     const [microcycleName, setMicrocycleName] = useState<string>("")
     const path = usePathname()
@@ -84,15 +83,24 @@ export default function MesocyclesScreen() {
 
     useEffect(() => {
         loadMicrocycles(parseInt(mesocycle_id as string));
-        microcycles.map((item: Microcycle) => console.log(item))
-    }, [mesocycle_id, microcycles]);
+
+    }, [])
+
+    useEffect(() => {
+        loadMicrocycles(parseInt(mesocycle_id as string));
+        console.log(microcycles)
+    }, [mesocycle_id, workouts]);
+
+
 
     useEffect(() => {
         loadMicroPresets();
     }, [microcyclePresets])
 
 
+    useEffect(() => {
 
+    }, [mesocycle_id, microcycles, workouts]);
 
 
     const handleAdd = async () => {
@@ -111,12 +119,13 @@ export default function MesocyclesScreen() {
             <Text className="font-semibold text-2xl text-[hsl(206,13%,79%)] py-4 text-center">Microcycles</Text>
             <CycleProgressBar micros={microcycles} />
             <FlatList
-                className="bg-[hsl(210,5%,7%)] p-4 m-2  rounded-xs flex fle-col gap-6"
-                contentContainerStyle={{ justifyContent: "space-evenly" }}
+                className="bg-[hsl(210,5%,7%)] p-4 m-2 rounded-xs flex fle-col gap-6"
+                contentContainerStyle={{ justifyContent: "space-evenly", gap: 20 }}
                 data={microcycles}
                 keyExtractor={(item) => item.id.toString()}
                 renderItem={({ item }) => (
                     <TouchableOpacity
+                        key={item.id}
                         className="bg-[hsl(221,20%,16%)] border-[hsl(221,20%,20%)] border rounded-sm p-4 flex flex-row items-center justify-center gap-4"
                         onPress={() => router.push(`/mesocycles/${mesocycle_id}/${item.id}`)}
                     >
