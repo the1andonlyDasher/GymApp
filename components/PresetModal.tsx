@@ -1,13 +1,5 @@
-import useItemStore, {
-    Exercise,
-    Mesocycle,
-    Microcycle,
-    Set,
-    Workout,
-} from "@/app/stores/store";
-import { getDBConnection } from "@/db/db";
+import useItemStore from "@/app/stores/store";
 import React, { useState, useRef, useEffect } from "react";
-import WorkoutsScreen from "../app/(tabs)/mesocycles/[mesocycle_id]/[microcycle_id]/[workout_id]/index";
 import {
     View,
     Text,
@@ -15,12 +7,11 @@ import {
     TextInput,
     Button,
     StyleSheet,
-    TouchableOpacity,
     Animated,
     Easing,
 } from "react-native";
 
-type TItem = "mesocycle" | "microcycle" | "Workouts" | undefined;
+type TItem = "Mesocycle" | "Microcycle" | "Workouts" | undefined;
 
 const PresetModal = ({
     open,
@@ -59,18 +50,29 @@ const PresetModal = ({
 
     const handleCreate = (presetItem: { name: string, num: number }) => {
         switch (item) {
-            case "mesocycle":
+            case "Mesocycle":
                 return addMesoPreset({ name: presetItem.name, num_microcycles: presetItem.num })
-            case "microcycle":
+            case "Microcycle":
                 return addMicroPreset({ name: presetItem.name, num_workouts: presetItem.num })
-
+            case "Workouts":
+                console.log("Workouts are not yet implemented");
+                break;
+            case undefined:
+                throw new Error("Item type is undefined. Please provide a valid item type.");
+            default:
+                throw new Error(`Unhandled item type: ${item}`);;
         }
     }
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (presetItem.name.trim()) {
-            handleCreate(presetItem);
-            onClose();
+            try {
+                await handleCreate(presetItem);
+                onClose();
+            } catch (error) {
+                console.error("Failed to create preset:", error);
+                alert("An error occurred while saving. Please try again.");
+            }
         } else {
             alert("Name cannot be empty.");
         }
@@ -101,17 +103,17 @@ const PresetModal = ({
                 <View style={styles.modalOverlay}>
                     <Animated.View style={[styles.modalContainer, animatedStyle]}>
                         <Text style={styles.modalTitle}>Create Preset</Text>
+                        <Text className="text-base text-[hsl(221,20%,55%)] pb-2 text-left">{item} Name</Text>
                         <TextInput
                             style={styles.input}
-                            value={"Choose your name"}
                             onChangeText={(e) => setItem({ ...presetItem, name: e.trim() })}
-                            placeholder="Enter new name"
+                            placeholder="Enter name"
                         />
+                        <Text className="text-base text-[hsl(221,20%,55%)] pb-2 text-left">Number of {item === "Mesocycle" ? "Microcycles" : "Workouts"}</Text>
                         <TextInput
                             style={styles.input}
-                            value={"Choose number"}
                             onChangeText={(e) => setItem({ ...presetItem, num: parseInt(e.trim()) })}
-                            placeholder="Enter new name"
+                            placeholder="Enter number"
                         />
                         <View style={styles.modalActions}>
                             <Button title="Create" onPress={handleSave} color="#4CAF50" />
@@ -193,7 +195,7 @@ const styles = StyleSheet.create({
     input: {
         borderWidth: 1,
         borderColor: "#3a3e48",
-        backgroundColor: "#3a3e48",
+        backgroundColor: "#b6bdd0",
         padding: 10,
         borderRadius: 5,
         marginBottom: 20,

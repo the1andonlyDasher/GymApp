@@ -31,10 +31,12 @@ export interface Exercise {
 }
 
 export interface MesoPreset {
+  name: string;
   num_microcycles: number;
 }
 
 export interface MicroPreset {
+  name: string;
   num_workouts: number;
 }
 
@@ -69,7 +71,9 @@ interface ItemStore {
   exercisePresets: ExercisePreset[];
   mesocyclePresets: MesoPreset[];
   loadMesoPresets: () => Promise<void>;
-  addMesoPreset: (mesocycle: Omit<Mesocycle, "id">) => Promise<void>;
+  addMesoPreset: (
+    mesocycle: Pick<Mesocycle, "name" | "num_microcycles">
+  ) => Promise<void>;
   microcyclePresets: MicroPreset[];
   loadMicroPresets: () => Promise<void>;
   addMicroPreset: (
@@ -80,7 +84,9 @@ interface ItemStore {
   exercisesWithSets: ExerciseWithSets[];
   loadMesocycles: () => Promise<void>;
   deleteMesocycle: (id: number) => Promise<void>;
-  addMesocycle: (mesocycle: Mesocycle) => Promise<void>;
+  addMesocycle: (
+    mesocycle: Pick<Mesocycle, "name" | "num_microcycles">
+  ) => Promise<void>;
   loadMicrocycles: (mesocycle_id: number) => Promise<void>;
   deleteMicrocycle: (id: number) => Promise<void>;
   addMicrocycle: (
@@ -131,7 +137,7 @@ const useItemStore = create<ItemStore>()(
       addMesoPreset: async (mesocycle) => {
         const db = await getDBConnection();
         const statement = await db.prepareAsync(
-          "INSERT INTO Mesocycle_Presets ( name, num_microcycles) VALUES ($id, $name, $num_microcycles)"
+          "INSERT INTO Mesocycle_Presets ( name, num_microcycles) VALUES ( $name, $num_microcycles)"
         );
 
         try {
@@ -140,8 +146,12 @@ const useItemStore = create<ItemStore>()(
             $num_microcycles: mesocycle.num_microcycles,
           });
           if (result) {
+            const id = result.lastInsertRowId;
             set((state) => ({
-              mesocyclePresets: [mesocycle, ...state.mesocyclePresets],
+              mesocyclePresets: [
+                { ...mesocycle, id: id },
+                ...state.mesocyclePresets,
+              ],
             }));
           }
         } catch (error) {
@@ -154,7 +164,7 @@ const useItemStore = create<ItemStore>()(
       loadMicroPresets: async () => {
         const db = await getDBConnection();
         const microcyclePresets = await db.getAllAsync<MicroPreset>(
-          "SELECT * FROM Mesocycle_Presets"
+          "SELECT * FROM Microcycle_Presets"
         );
         set({ microcyclePresets: microcyclePresets });
       },

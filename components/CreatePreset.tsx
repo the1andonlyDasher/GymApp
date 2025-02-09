@@ -11,8 +11,8 @@ type TCreatePresetProps = {
 type TPResetType = Mesocycle | Microcycle
 
 const presetTypeMap = {
-    mesocycle: "mesocycle",
-    microcycle: "microcycle"
+    mesocycle: "Mesocycle",
+    microcycle: "Microcycle"
 }
 
 export const CreatePreset: FC<TCreatePresetProps> = () => {

@@ -1,5 +1,6 @@
 import { Mesocycle } from "@/app/stores/store";
 import * as SQLite from "expo-sqlite";
+import { SQLiteAnyDatabase } from "expo-sqlite/build/NativeStatement";
 
 export const getDBConnection = async () => {
   const db = await SQLite.openDatabaseAsync("myDatabase", {
@@ -8,30 +9,80 @@ export const getDBConnection = async () => {
   return db;
 };
 
+// TypeScript type for database schema column metadata
+type TableColumnInfo = {
+  cid: number; // Column ID
+  name: string; // Column Name
+  type: string; // Data Type
+  notnull: number; // 1 if NOT NULL constraint, 0 otherwise
+  dflt_value: string | null; // Default value
+  pk: number; // 1 if part of the primary key, 0 otherwise
+};
+
 export const createTables = async () => {
   const db = await getDBConnection();
 
-  // Create Mesocycles table
-  await db.execAsync(
-    `
-    PRAGMA journal_mode = WAL;
-    CREATE TABLE IF NOT EXISTS Mesocycles (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      num_microcycles INTEGER,
-      name TEXT NOT NULL
-    );`
-  );
+  try {
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS Mesocycles (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL
+      );
+    `);
+  } catch (error) {
+    console.error("Error initializing database:", error);
+  } finally {
+    const res = await db.getAllAsync("SELECT * FROM Mesocycles");
+    // add num_microycles
+    if (
+      res.find((item: any) =>
+        Object.keys(item).find((item: string) => item !== "num_microcycles")
+      )
+    ) {
+      db.execAsync(
+        "ALTER TABLE Mesocycles ADD COLUMN num_microcycles INTEGER;"
+      );
+    }
+    // date
+    if (
+      res.find((item: any) =>
+        Object.keys(item).find((item: string) => item !== "start_date")
+      )
+    ) {
+      db.execAsync("ALTER TABLE Mesocycles ADD COLUMN start_date DATE;");
+    }
+  }
 
-  // Create Microcycles table
-  await db.execAsync(
-    `CREATE TABLE IF NOT EXISTS Microcycles (
+  try {
+    await db.execAsync(
+      `CREATE TABLE IF NOT EXISTS Microcycles (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       num_workouts INTEGER,
       mesocycle_id INTEGER,
       name TEXT NOT NULL,
       FOREIGN KEY (mesocycle_id) REFERENCES Mesocycles(id)
     );`
-  );
+    );
+  } catch (error) {
+    console.error("Error initializing database:", error);
+  } finally {
+    const res = await db.getAllAsync("SELECT * FROM Microcycles");
+    if (
+      res.find((item: any) =>
+        Object.keys(item).find((item: string) => item !== "num_workouts")
+      )
+    ) {
+      db.execAsync("ALTER TABLE Microcycles ADD COLUMN num_workouts INTEGER;");
+    }
+    // date
+    if (
+      res.find((item: any) =>
+        Object.keys(item).find((item: string) => item !== "start_date")
+      )
+    ) {
+      db.execAsync("ALTER TABLE Mesocycles ADD COLUMN start_date DATE;");
+    }
+  }
 
   // Create Workouts table
   await db.execAsync(
@@ -57,14 +108,49 @@ export const createTables = async () => {
     );`
   );
 
-  // Create Mesocycle_Presets table
-  await db.execAsync(
-    `CREATE TABLE IF NOT EXISTS Mesocycle_Presets (
+  // Create Microcycle_Presets table
+  try {
+    await db.execAsync(
+      `CREATE TABLE IF NOT EXISTS Microcycle_Presets (
        id INTEGER PRIMARY KEY AUTOINCREMENT,
-       name TEXT NOT NULL UNIQUE
+       name TEXT NOT NULL UNIQUE,
+       num_workouts INTEGER NOT NULL
+    );`
+    );
+  } finally {
+    const res = await db.getAllAsync("SELECT * FROM Microcycle_Presets");
+    // date
+    if (
+      res.find((item: any) =>
+        Object.keys(item).find((item: string) => item !== "start_date")
+      )
+    ) {
+      db.execAsync(
+        "ALTER TABLE Microcycle_Presets ADD COLUMN start_date DATE;"
+      );
+    }
+  }
+
+  // Create Mesocycle_Presets table
+  try {
+    await db.execAsync(
+      `CREATE TABLE IF NOT EXISTS Mesocycle_Presets (
+       id INTEGER PRIMARY KEY AUTOINCREMENT,
+       name TEXT NOT NULL UNIQUE,
        num_microcycles INTEGER NOT NULL
     );`
-  );
+    );
+  } finally {
+    const res = await db.getAllAsync("SELECT * FROM Mesocycle_Presets");
+    // date
+    if (
+      res.find((item: any) =>
+        Object.keys(item).find((item: string) => item !== "start_date")
+      )
+    ) {
+      db.execAsync("ALTER TABLE Mesocycle_Presets ADD COLUMN start_date DATE;");
+    }
+  }
 
   // Create Exercise_Presets table
   await db.execAsync(

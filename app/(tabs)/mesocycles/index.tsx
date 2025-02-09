@@ -13,7 +13,7 @@ import {
 } from "react-native";
 
 import { Href, Link, useRouter } from "expo-router";
-import useItemStore, { Mesocycle } from "@/app/stores/store";
+import useItemStore, { Mesocycle, MesoPreset } from "@/app/stores/store";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { getDBConnection } from "@/db/db";
 import AnimatedModal from "@/components/Modal";
@@ -29,9 +29,9 @@ export const updateMesocycleName = async (newName: string, id: number) => {
     try {
         const result = await statement.executeAsync<Mesocycle[]>({
             $newName: newName,
-            $id: id
+            $id: id,
         });
-        const mesocycles = await result.getAllAsync()
+        const mesocycles = await result.getAllAsync();
         if (mesocycles.length > 0) {
             console.log(`Mesocycle with ID ${id} updated successfully.`);
         } else {
@@ -46,28 +46,45 @@ export const updateMesocycleName = async (newName: string, id: number) => {
     }
 };
 
-
 export default function MesocyclesMainScreen() {
-    const { mesocycles, loadMesocycles, addMesocycle, deleteMesocycle, mesocyclePresets } =
-        useItemStore();
+    const {
+        mesocycles,
+        loadMesocycles,
+        addMesocycle,
+        deleteMesocycle,
+        mesocyclePresets,
+        loadMesoPresets,
+    } = useItemStore();
     const router = useRouter();
 
-    const [mesocycleName, setMesocycleName] = useState<string>("");
+    const [meso, setMeso] = useState<Pick<Mesocycle, "name" | "num_microcycles">>(
+        { name: "", num_microcycles: 0 }
+    );
     const [num_microCycles, setNumMicroCycles] = useState<number>(0);
     const [modalOpen, setModalOpen] = useState<boolean>(false);
-
-    const openModal = () => {
-        setModalOpen(true);
-    };
 
     const closeModal = () => {
         setModalOpen(false);
     };
 
+    useEffect(() => {
+        loadMesoPresets();
+    }, [mesocyclePresets]);
 
     useEffect(() => {
         loadMesocycles();
     }, [mesocycles]);
+
+    const handleAdd = async () => {
+        if (meso) {
+            try {
+                await addMesocycle(meso)
+            }
+            catch (error) {
+                alert(`error ${error}`)
+            }
+        }
+    }
 
     return (
         <View className="flex bg-[hsl(210,5%,7%)] w-full h-full justify-start flex-col">
@@ -75,15 +92,16 @@ export default function MesocyclesMainScreen() {
                 Mesocycles
             </Text>
             <FlatList
-                className="bg-[hsl(210,5%,9%)] p-4 m-2 border-[#16213b] rounded-xs flex fle-col gap-6"
-                contentContainerStyle={{ justifyContent: "space-evenly" }}
+                className="p-4 m-2  rounded-xs flex fle-col gap-2"
+                contentContainerStyle={{ justifyContent: "space-evenly", gap: 20 }}
                 data={mesocycles}
                 keyExtractor={(item) => item.id.toString()}
                 renderItem={({ item }) => (
                     <TouchableOpacity
                         className="bg-[hsl(221,20%,16%)] border-[hsl(221,20%,20%)] border rounded-sm p-4 flex flex-row items-center justify-center gap-4"
-                        onPress={() => router.push(`mesocycles/${item.id}` as Href)}
-                    ><View className="flex flex-row flex-1">
+                        onPress={() => router.push(`/mesocycles/${item.id}`)}
+                    >
+                        <View className="flex flex-row flex-1">
                             <Text className="text-white font-semibold text-xl flex flex-[1_1_60%]">
                                 {item.name}
                             </Text>
@@ -103,8 +121,12 @@ export default function MesocyclesMainScreen() {
                         >
                             <Ionicons name="trash-bin" size={20} color="white" />
                         </TouchableOpacity>
-                        <AnimatedModal updateFn={updateMesocycleName} item={item} open={modalOpen} onClose={closeModal} />
-
+                        <AnimatedModal
+                            updateFn={updateMesocycleName}
+                            item={item}
+                            open={modalOpen}
+                            onClose={closeModal}
+                        />
                     </TouchableOpacity>
                 )}
             />
@@ -113,28 +135,30 @@ export default function MesocyclesMainScreen() {
                 <TextInput
                     className="bg-slate-300 w-4/5 m-auto p-4 rounded-md"
                     placeholder="Mesocycle Name..."
-                    onChangeText={setMesocycleName}
-                    value={mesocycleName}
+                    onChangeText={(e) => setMeso({ ...meso, name: e })}
                 ></TextInput>
                 <Suspense>
                     <Picker
                         selectionColor={"red"}
                         dropdownIconColor={"white"}
                         style={{ backgroundColor: "hsl(210,5%,7%)" }}
-                        onValueChange={(itemValue) => setMesocycleName(itemValue)}
-                        selectedValue="0"
-                    ><Picker.Item
-                            label={"Choose your exercise"}
-                            value={"0"}
-                            style={{ backgroundColor: "hsl(210,5%,11%)" }}
-                            color="#fff"
-                        />
+                        onValueChange={(itemValue: MesoPreset) => setMeso({ ...meso, num_microcycles: itemValue.num_microcycles })}
+                    >
+                        {mesocyclePresets.map((preset: MesoPreset) => (
+                            <Picker.Item
+                                key={preset.name}
+                                label={preset.name}
+                                value={preset.name}
+                                style={{ backgroundColor: "hsl(210,5%,11%)" }}
+                                color="#fff"
+                            />
+                        ))}
                     </Picker>
                 </Suspense>
-
+                <TouchableOpacity className="flex justify-center items-center p-4 bg-emerald-400" onPress={handleAdd}>
+                    <Text className="text-white">Add Mesocycle</Text>
+                </TouchableOpacity>
             </View>
         </View>
     );
 }
-
-

@@ -119,11 +119,6 @@ const stylesModal = StyleSheet.create({
 });
 
 export default function Index(): JSX.Element {
-  const [open, setOpen] = useState(false);
-  const [nameValue, setNameValue] = useState<string>('');
-  const [ageValue, setAgeValue] = useState<string>('');
-
-
   useEffect(() => {
     createTables()
   }, [])
@@ -132,6 +127,9 @@ export default function Index(): JSX.Element {
   return (
     <View className='bg-[hsl(221,20%,7%)] flex flex-col gap-4 flex-1 justify-center items-center p-8'>
       <CreatePreset />
+      <TouchableOpacity onPress={resetDatabase} className='bg-red-400 p-4'>
+        <Text className='text-white'>Reset Database</Text>
+      </TouchableOpacity>
     </View >
   );
 }
